@@ -1,0 +1,139 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+
+#ifdef _WIN32
+    #include <windows.h>
+    #define LIMPAR "cls"
+    #define SLEEP(ms) Sleep(ms)
+#else
+    #include <unistd.h>
+    #define LIMPAR "clear"
+    #define SLEEP(ms) usleep(ms * 1000)  // Converte ms para microsegundos
+#endif
+
+// Função para imprimir o tabuleiro
+void print_tabuleiro(int **tabuleiro, int linha, int coluna) {
+    for (int i = 0; i < linha; i++) {
+        for (int j = 0; j < coluna; j++) {
+            printf("%c ", tabuleiro[i][j] ? 'O' : '.');  // 'O' representa célula viva e '.' célula morta
+        }
+        printf("\n");
+    }
+}
+
+// Função para contar células vizinhas vivas
+int contar_vizinhos_vivos(int **tabuleiro, int x, int y, int linha, int coluna) {
+    int vivos = 0;
+    for (int i = -1; i <= 1; i++) {
+        for (int j = -1; j <= 1; j++) {
+            if (i == 0 && j == 0) continue;  // Ignorar a célula em si
+            int nx = x + i;
+            int ny = y + j;
+            if (nx >= 0 && nx < linha && ny >= 0 && ny < coluna && tabuleiro[nx][ny]) {
+                vivos++;
+            }
+        }
+    }
+    return vivos;
+}
+
+// Função que executa uma geração do Game of Life
+void proxima_geracao(int **tabuleiro, int **novo_tabuleiro, int linha, int coluna) {
+    for (int i = 0; i < linha; i++) {
+        for (int j = 0; j < coluna; j++) {
+            int vizinhos_vivos = contar_vizinhos_vivos(tabuleiro, i, j, linha, coluna);
+            
+            if (tabuleiro[i][j]) {
+                // Regra 1 e 3: Célula viva morre se tem menos de 2 ou mais de 3 vizinhos vivos
+                novo_tabuleiro[i][j] = (vizinhos_vivos == 2 || vizinhos_vivos == 3) ? 1 : 0;
+            } else {
+                // Regra 4: Célula morta revive se tiver exatamente 3 vizinhos vivos
+                novo_tabuleiro[i][j] = (vizinhos_vivos == 3) ? 1 : 0;
+            }
+        }
+    }
+}
+
+// Função para inicializar o tabuleiro com células vivas e mortas de forma aleatória
+void inicializar_tabuleiro(int **tabuleiro, int linha, int coluna, int celulas_vivas, int celulas_mortas) {
+    int total_cells = linha * coluna;
+    
+    // Inicializar todas as células como mortas
+    for (int i = 0; i < linha; i++) {
+        for (int j = 0; j < coluna; j++) {
+            tabuleiro[i][j] = 0;
+        }
+    }
+
+    // Gerar células vivas aleatoriamente
+    srand(time(0)); // Inicializar a semente para números aleatórios
+    for (int i = 0; i < celulas_vivas; i++) {
+        int x = rand() % linha;
+        int y = rand() % coluna;
+        tabuleiro[x][y] = 1;
+    }
+}
+
+int main() {
+    int **tabuleiro, **novo_tabuleiro;
+    int linha, coluna;
+    int celulas_vivas, celulas_mortas, movimentos;
+    
+    // Entradas do usuário
+    printf("Digite o número de linhas: ");
+    scanf("%d", &linha);
+    
+    printf("Digite o número de colunas: ");
+    scanf("%d", &coluna);
+
+    printf("Digite a quantidade de células vivas: ");
+    scanf("%d", &celulas_vivas);
+    
+    printf("Digite a quantidade de células mortas: ");
+    scanf("%d", &celulas_mortas);
+    
+    printf("Digite o número de movimentos: ");
+    scanf("%d", &movimentos);
+    
+    // Alocar o tabuleiro dinamicamente
+    tabuleiro = (int **)malloc(linha * sizeof(int *));
+    novo_tabuleiro = (int **)malloc(linha * sizeof(int *));
+    for (int i = 0; i < linha; i++) {
+        tabuleiro[i] = (int *)malloc(coluna * sizeof(int));
+        novo_tabuleiro[i] = (int *)malloc(coluna * sizeof(int));
+    }
+    
+    // Inicializar o tabuleiro com as células vivas e mortas de forma aleatória
+    inicializar_tabuleiro(tabuleiro, linha, coluna, celulas_vivas, celulas_mortas);
+    
+    // Executar a simulação por 'movimentos' iterações
+    for (int step = 0; step < movimentos; step++) {
+        // Limpar o terminal para dar a impressão de movimento
+        system(LIMPAR);
+        
+        print_tabuleiro(tabuleiro, linha, coluna);
+        
+        proxima_geracao(tabuleiro, novo_tabuleiro, linha, coluna);
+        
+        // Copiar o novo tabuleiro para o tabuleiro atual
+        for (int i = 0; i < linha; i++) {
+            for (int j = 0; j < coluna; j++) {
+                tabuleiro[i][j] = novo_tabuleiro[i][j];
+            }
+        }
+        
+        // Pausa de 500ms entre cada geração
+        SLEEP(500);
+    }
+    
+    // Liberar a memória alocada
+    for (int i = 0; i < linha; i++) {
+        free(tabuleiro[i]);
+        free(novo_tabuleiro[i]);
+    }
+    free(tabuleiro);
+    free(novo_tabuleiro);
+
+    return 0;
+}
